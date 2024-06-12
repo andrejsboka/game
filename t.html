@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Игра</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            width: 20vw;
+            height: 20vw;
+            background-color: #ffffff;
+            border: 2px solid #000;
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid #ddd;
+            font-size: 3vw; /* Размер эмодзи будет масштабироваться в зависимости от ширины поля */
+            cursor: pointer;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+        }
+
+        .move-counter {
+            font-size: 1.5em;
+            margin-right: 20px;
+        }
+    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div class="game-board">
+        <div class="cell hurricane" data-type="hurricane" draggable="true">🌪️</div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell flood" data-type="flood" draggable="true">🌊</div>
+
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+
+        <div class="cell fire" data-type="fire" draggable="true">🔥</div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell earthquake" data-type="earthquake" draggable="true">🪨</div>
+    </div>
+    <div class="controls">
+        <div class="move-counter">Moves: <span id="move-count">0</span></div>
+        <button id="go-button">GO</button>
+    </div>
+    <script>
+        $(document).ready(function() {
+            let selectedElement = null;
+            let moveCount = 0;
+            let gameStarted = false;
+            const initialPositions = {};
+
+            // Сохранение начальных позиций фигур
+            $(".cell").each(function(index, cell) {
+                if ($(cell).html().trim() !== "") {
+                    initialPositions[$(cell).attr("data-type")] = index;
+                }
+            });
+
+            $(".cell").on("dragstart", function(e) {
+                selectedElement = this;
+                e.originalEvent.dataTransfer.setData("text/plain", $(this).html());
+            });
+
+            $(".cell").on("dragover", function(e) {
+                e.preventDefault();
+            });
+
+            $(".cell").on("drop", function(e) {
+                e.preventDefault();
+                const targetElement = this;
+
+                if ($(targetElement).hasClass("cell") && targetElement !== selectedElement) {
+                    const draggedIcon = $(selectedElement).html();
+                    const targetIcon = $(targetElement).html();
+
+                    if (isValidMove(selectedElement, targetElement)) {
+                        $(targetElement).html(draggedIcon);
+                        $(selectedElement).html(targetIcon);
+
+                        if (gameStarted) {
+                            moveCount++;
+                            $("#move-count").text(moveCount);
+                        }
+                    }
+                }
+            });
+
+            $("#go-button").on("click", function() {
+                gameStarted = true;
+                moveCount = 0;
+                $("#move-count").text(moveCount);
+            });
+
+            function isValidMove(from, to) {
+                const fromIndex = $(from).index();
+                const toIndex = $(to).index();
+
+                const fromRow = Math.floor(fromIndex / 4);
+                const fromCol = fromIndex % 4;
+                const toRow = Math.floor(toIndex / 4);
+                const toCol = toIndex % 4;
+
+                const icon = $(from).html().trim();
+                const type = $(from).attr("data-type");
+                const initialIndex = initialPositions[type];
+
+                const initialRow = Math.floor(initialIndex / 4);
+                const initialCol = initialIndex % 4;
+
+                if (!gameStarted) {
+                    if (icon === "🌪️") {
+                        return Math.abs(toRow - initialRow) === Math.abs(toCol - initialCol) || toRow === initialRow || toCol === initialCol;
+                    }
+
+                    if (icon === "🔥" || icon === "🌊") {
+                        return toRow === initialRow + 1 && toCol === initialCol;
+                    }
+
+                    if (icon === "🪨") {
+                        return toRow === initialRow || toCol === initialCol;
+                    }
+                } else {
+                    if (icon === "🌪️") {
+                        return Math.abs(toRow - fromRow) === Math.abs(toCol - fromCol) || toRow === fromRow || toCol === fromCol;
+                    }
+
+                    if (icon === "🔥" || icon === "🌊") {
+                        return toRow === fromRow + 1 && toCol === fromCol;
+                    }
+
+                    if (icon === "🪨") {
+                        return toRow === fromRow || toCol === fromCol;
+                    }
+                }
+
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>
